@@ -1,0 +1,20 @@
+#!/system/bin/sh
+# SPDX-License-Identifier: MIT
+# Sanitized live reference, NOT an installer; production has not been changed.
+if [ "${SCREENMATE_REVIEWED_REFERENCE:-}" != yes ]; then
+    printf '%s\n' 'Inactive reference: review documentation and local policy capture first.' >&2
+    exit 64
+fi
+
+
+BASE=/data/local/screenmate-services
+BB=/data/local/screenmate-services/bin/busybox
+
+export PATH="$BASE/bin:/system/bin:/vendor/bin"
+export LD_LIBRARY_PATH="$BASE/lib"
+
+# Only one runsvdir instance may own this lock.
+# Keep the lock held for the supervisor lifetime.
+exec "$BB" flock -n \
+    "$BASE/run/supervisor.lock" \
+    "$BASE/bin/runsvdir" "$BASE/services"

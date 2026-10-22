@@ -1,0 +1,10 @@
+#!/system/bin/sh
+# SPDX-License-Identifier: MIT
+# Sanitized live reference, NOT an installer; production has not been changed.
+if [ "${SCREENMATE_REVIEWED_REFERENCE:-}" != yes ]; then
+    printf '%s\n' 'Inactive reference: review documentation and local policy capture first.' >&2
+    exit 64
+fi
+
+exec /system/bin/sh \
+    /data/local/screenmate-services/magisk/bin/magisk-boot-gate.sh

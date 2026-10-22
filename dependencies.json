@@ -1,0 +1,43 @@
+{
+  "schema": 1,
+  "third_party_binaries_distributed": false,
+  "magisk": {
+    "version": "30.7",
+    "source_commit": "e8a58776f1d7bdf852072ad0baa6eceb9a1e4aac",
+    "official_apk": {
+      "name": "Magisk-v30.7.apk",
+      "digest": "sha256:e0d32d2123532860f97123d927b1bb86c4e08e6fd8a48bfc6b5bee0afae9ebd5",
+      "browser_download_url": "https://github.com/topjohnwu/Magisk/releases/download/v30.7/Magisk-v30.7.apk"
+    },
+    "outer_digest_match_verified": true,
+    "arm64_entries": {
+      "libmagisk.so": "2d8419018dda41f7d9aca94c0ca8f926f3b8447ca5cf7fb71faeb8d05e29694e",
+      "libmagiskpolicy.so": "9837db9db475eb74b6715f081768cb6a1f2fb5a2b2ac15755686062501bace27",
+      "libbusybox.so": "4d60ab3f5a59ebb2ca863f2f514e6924401b581e9b64f602665c008177626651"
+    },
+    "entry_hashes_match_live": true,
+    "busybox_banner": "BusyBox v1.36.1.1 topjohnwu",
+    "license": "GPL-3.0; bundled BusyBox GPL-2.0"
+  },
+  "runit": {
+    "reported_version": "2.3.1",
+    "termux_recipe_blob": "4ed07fe27541b7c286d7ed889ef82521115972ae",
+    "source_commit": "339dc067c537e36ecb1232f0cfed792ca36c59dd",
+    "source_archive_sha256": "f9f0010329dbdbe9021578f3dd54c11d0cab9489375265a172e1da20ffeb03cf",
+    "license": "BSD-3-Clause per downstream recipe; retain source license",
+    "required_shared_library": "librunit.so",
+    "observed_runsvdir_sha256": "3b196e0452e4419bc541e8131edc5e61bd61922c1232d0e56a41514c15a3f778",
+    "observed_librunit_sha256": "77bac9c736e149d4d8d76d28f5fbd846ee2a20dc5d9b8347728cde2147fab9eb",
+    "historical_package_sha256_reported_not_independently_recovered": "fc218b014664bf7f22de2ba0a8646c638fc79f9d036e364ca199754f027bb155",
+    "binary_source_correspondence": "not fully verified; no bundled artifact or auto-download fallback",
+    "observed_elf": {
+      "elf_class": 64,
+      "endianness": "little",
+      "machine": 183,
+      "needed": [
+        "librunit.so",
+        "libc.so"
+      ]
+    }
+  }
+}

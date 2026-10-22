@@ -1,0 +1,19 @@
+{
+  "schema": 1,
+  "status": "experimental_source_only_plan_tools",
+  "production_device_mutated": false,
+  "tests": {
+    "suite": "python3 -m unittest discover -s tests -v",
+    "count": 14,
+    "failures": 0,
+    "errors": 0
+  },
+  "shellcheck": {
+    "all_shell_files": 9,
+    "exit_code": 0,
+    "version_output": "ShellCheck - shell script analysis tool\nversion: 0.11.0\nlicense: GNU General Public License, version 3\nwebsite: https://www.shellcheck.net"
+  },
+  "reboot_evidence": "owner-reported several successful reboots since Saturday; no reboot performed for publication",
+  "runtime_crash_testing": "not performed",
+  "independent_review": "no concrete source/privacy/license publication blocker found; history and public readback verified separately"
+}

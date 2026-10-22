@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+/private/
+/backups/
+/dist/
+*.apk
+*.db
+*.bin
+*.so
+*.deb
+*.pem
+*.key
+*.p12
+*.jks
+.env

@@ -1,0 +1,80 @@
+#!/system/bin/sh
+# SPDX-License-Identifier: MIT
+# Sanitized live reference, NOT an installer; production has not been changed.
+if [ "${SCREENMATE_REVIEWED_REFERENCE:-}" != yes ]; then
+    printf '%s\n' 'Inactive reference: review documentation and local policy capture first.' >&2
+    exit 64
+fi
+
+set -eu
+
+S=/data/local/screenmate-services
+M=$S/magisk
+BB=$S/bin/busybox
+LOCK=$S/run/magisk-failure.lock
+LOG=$S/logs/magisk-boot-gate.log
+
+boot_ready() {
+    [ "$(getprop sys.boot_completed)" = 1 ] ||
+        return 1
+
+    [ "$(getprop dev.bootcomplete)" = 1 ] ||
+        return 1
+
+    [ "$(getprop init.svc.zygote)" = running ] ||
+        return 1
+
+    PACKAGES=$(
+        "$BB" timeout 8 \
+            /system/bin/pm list packages --user 0 -U \
+            2>/dev/null
+    ) || return 1
+
+    printf '%s\n' "$PACKAGES" |
+        grep -Eq '^package:android uid:[0-9]+$'
+}
+
+case "${1:-}" in
+    --check)
+        if boot_ready; then
+            echo "BOOT_READINESS=READY"
+            exit 0
+        else
+            echo "BOOT_READINESS=NOT_READY"
+            exit 1
+        fi
+        ;;
+    "")
+        ;;
+    *)
+        echo "Usage: $0 [--check]" >&2
+        exit 64
+        ;;
+esac
+
+COUNT=0
+
+while ! boot_ready; do
+    if [ -e "$LOCK" ]; then
+        echo "BOOT_GATE=BLOCKED_BY_FAILURE_LOCK" >> "$LOG"
+        touch "$S/services/magisk/down"
+        exit 72
+    fi
+
+    if [ "$COUNT" -eq 0 ]; then
+        echo "$(date) BOOT_GATE=WAITING_FOR_ANDROID" >> "$LOG"
+    fi
+
+    COUNT=$(( (COUNT + 1) % 12 ))
+    sleep 5
+done
+
+if [ -e "$LOCK" ]; then
+    echo "BOOT_GATE=BLOCKED_BY_FAILURE_LOCK" >> "$LOG"
+    touch "$S/services/magisk/down"
+    exit 72
+fi
+
+echo "$(date) BOOT_GATE=ANDROID_READY" >> "$LOG"
+
+exec /system/bin/sh "$M/bin/magisk-service.sh"

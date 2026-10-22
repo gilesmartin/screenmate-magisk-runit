@@ -1,0 +1,200 @@
+#!/system/bin/sh
+# SPDX-License-Identifier: MIT
+# Sanitized live reference, NOT an installer; production has not been changed.
+if [ "${SCREENMATE_REVIEWED_REFERENCE:-}" != yes ]; then
+    printf '%s\n' 'Inactive reference: review documentation and local policy capture first.' >&2
+    exit 64
+fi
+
+
+# SCREENMATE-MAGISK-FAILURE-LOCK-V1
+# Fail closed before loading SELinux policy or mounts.
+if [ -e /data/local/screenmate-services/run/magisk-failure.lock ]; then
+    echo "MAGISK_START_BLOCKED=FAILURE_LOCK"
+    exit 72
+fi
+
+set -eu
+
+S=/data/local/screenmate-services
+M=$S/magisk
+R=/debug_ramdisk
+O=/dev/screenmate-magisk-su
+P=$M/bin/magiskpolicy
+BIN=$M/bin/magisk
+ORIG=$M/reference/sepolicy-original.bin
+LOG=$S/logs/magisk-service.log
+EXPECTED=__LOCAL_POLICY_SHA256_REQUIRED__
+
+log() {
+    echo "$(date '+%Y-%m-%d %H:%M:%S') $*" >> "$LOG"
+}
+
+runtime_mounted() {
+    grep -Fq " $R " /proc/self/mountinfo
+}
+
+overlay_owned() {
+    grep -F ' /product/bin ' /proc/self/mountinfo |
+        grep -Fq "upperdir=$O/upper"
+}
+
+cleanup() {
+    trap - EXIT TERM INT HUP
+    set +e
+
+    log "Stopping Magisk service"
+
+    if overlay_owned; then
+        if umount /product/bin; then
+            log "SU overlay unmounted"
+        else
+            log "ERROR: SU overlay unmount failed"
+        fi
+    fi
+
+    if [ -x "$R/magisk" ]; then
+        "$R/magisk" --stop >> "$LOG" 2>&1
+        log "Magisk stop attempted"
+    fi
+
+    if runtime_mounted; then
+        umount "$R" >> "$LOG" 2>&1
+    fi
+
+    "$P" --load "$ORIG" --live >> "$LOG" 2>&1
+    RESTORE=$?
+
+    CURRENT=$(sha256sum /sys/fs/selinux/policy |
+        cut -d ' ' -f1)
+
+    if overlay_owned || runtime_mounted; then
+        log "ERROR: Runtime mounts remain"
+    else
+        rm -rf "$O"
+    fi
+
+    if [ "$RESTORE" = 0 ] &&
+       [ "$CURRENT" = "$EXPECTED" ] &&
+       ! overlay_owned &&
+       ! runtime_mounted; then
+        log "MAGISK_CLEANUP=SUCCESS"
+    else
+        log "MAGISK_CLEANUP=INCOMPLETE"
+    fi
+}
+
+trap 'exit 0' TERM
+trap 'exit 130' INT
+trap 'exit 129' HUP
+
+echo "Starting Magisk service" >> "$LOG"
+
+# Validate existing state before making any changes.
+test "$(id -u)" = 0
+test "$(getenforce)" = Enforcing
+test -d "$R"
+test ! -e "$O"
+test ! -e /product/bin/su
+
+test "$(sha256sum /sys/fs/selinux/policy |
+    cut -d ' ' -f1)" = "$EXPECTED"
+
+test "$(sha256sum "$ORIG" |
+    cut -d ' ' -f1)" = "$EXPECTED"
+
+if runtime_mounted ||
+   grep -Fq ' /product/bin ' /proc/self/mountinfo ||
+   pidof magiskd >/dev/null 2>&1; then
+    log "PREFLIGHT=FAILED existing runtime"
+    exit 1
+fi
+
+# Mount propagation must reach Android application namespaces.
+if ! grep ' /product ' /proc/self/mountinfo |
+     grep -q 'shared:'; then
+    log "PREFLIGHT=FAILED product mount not shared"
+    exit 1
+fi
+
+log "PREFLIGHT=SUCCESS"
+
+# After this point, always attempt rollback when exiting.
+trap cleanup EXIT
+
+log "Creating Magisk runtime"
+
+mount -t tmpfs -o mode=0755 magisk "$R"
+
+cp "$BIN" "$R/magisk"
+chmod 755 "$R/magisk"
+
+mkdir -p "$R/.magisk/device" "$R/.magisk/worker"
+touch "$R/.magisk/config"
+ln -s magisk "$R/su"
+
+log "Loading Magisk SELinux rules"
+
+"$P" --magisk --live
+chcon u:object_r:magisk_file:s0 "$R/magisk"
+
+log "Starting magiskd"
+
+# MAGISK_MANAGER_INIT_V1
+cp "$M/reference/stub.apk" "$R/stub.apk"
+chmod 600 "$R/stub.apk"
+
+"$R/magisk" --daemon
+
+log "Initializing Magisk environment and Manager certificate"
+"$R/magisk" --post-fs-data
+test ! -e "$R/stub.apk"
+
+"$R/magisk" --boot-complete
+test -n "$(pm path com.topjohnwu.magisk)"
+test -n "$(pidof magiskd)"
+
+log "MAGISK_MANAGER_INITIALIZED=1"
+
+
+log "Preparing symlink-based SU overlay"
+
+mkdir -p "$O/upper" "$O/work"
+chmod 700 "$O" "$O/upper" "$O/work"
+
+ln -s /debug_ramdisk/magisk "$O/upper/su"
+
+"$BIN" --clone-attr /product/bin "$O/upper"
+
+mount -t overlay overlay \
+    -o "lowerdir=/product/bin,upperdir=$O/upper,workdir=$O/work" \
+    /product/bin
+
+# MagiskSU -v queries its version; it does not switch user.
+# shellcheck disable=SC2117
+test "$( /product/bin/su -v )" = "30.7:MAGISKSU"
+test -n "$(pidof magiskd)"
+overlay_owned
+
+log "MAGISK_SERVICE_READY=1"
+
+# Remain in foreground for runit supervision.
+# No automatic root grants are created here.
+while true; do
+    sleep 5
+
+    if ! pidof magiskd >/dev/null 2>&1; then
+        log "HEALTH_FAILED=magiskd"
+        exit 1
+    fi
+
+    if ! overlay_owned; then
+        log "HEALTH_FAILED=overlay"
+        exit 1
+    fi
+
+    if [ "$(getenforce)" != Enforcing ]; then
+        log "HEALTH_FAILED=selinux"
+        exit 1
+    fi
+done

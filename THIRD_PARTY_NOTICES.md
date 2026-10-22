@@ -1,0 +1,11 @@
+# Third-party attribution and binary boundary
+
+The MIT license covers only custom shell integration, documentation and packaging tools. No third-party executable, APK, library, OEM script or decompiled private application source is distributed.
+
+- **Magisk**, John Wu and contributors: GPL-3.0; [source](https://github.com/topjohnwu/Magisk/tree/e8a58776f1d7bdf852072ad0baa6eceb9a1e4aac), [license](https://github.com/topjohnwu/Magisk/blob/e8a58776f1d7bdf852072ad0baa6eceb9a1e4aac/LICENSE). Use its own upstream release and matching Manager stub; no authorship or certification claim.
+- **Magisk BusyBox**, BusyBox and fork contributors: GPL-2.0; [upstream](https://busybox.net/), [Magisk sources and submodules](https://github.com/topjohnwu/Magisk/tree/e8a58776f1d7bdf852072ad0baa6eceb9a1e4aac). Live banner identifies the Magisk fork, not the current Termux BusyBox package. Obtain corresponding fork source/configuration when rebuilding or redistributing it.
+- **runit**, Gerrit Pape and downstream contributors: BSD 3-Clause according to the pinned [Termux package recipe blob](https://api.github.com/repos/termux/termux-packages/git/blobs/4ed07fe27541b7c286d7ed889ef82521115972ae); [upstream overview](http://smarden.org/runit/), [downstream source snapshot](https://git.sr.ht/~grimler/runit/tree/339dc067c537e36ecb1232f0cfed792ca36c59dd). Retain the actual source's license notices if building/distributing binaries. No live binary/source equivalence beyond stated hashes is asserted.
+- **Android/AOSP**: [init documentation](https://android.googlesource.com/platform/system/core/+/refs/heads/main/init/README.md), [direct boot](https://developer.android.com/privacy-and-security/direct-boot), [ADB](https://android.googlesource.com/platform/packages/modules/adb/). Code/components retain their individual upstream licenses.
+- **Termux**: [package build infrastructure](https://github.com/termux/termux-packages). Referencing a runit build recipe does not require installation of a Termux application or transfer its license to this project.
+
+Pinned metadata and verification limitations are in [dependencies.json](dependencies.json). Redistribution of dependencies requires satisfying their own source/notice obligations; this source-only integration release does not grant those rights.

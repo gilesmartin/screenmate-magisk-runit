@@ -1,0 +1,51 @@
+{
+  "kind": "sanitized current-live script references; no binary or private policy artifacts",
+  "files": [
+    {
+      "path": "reference/start-supervisor.sh.in",
+      "sha256": "4987e8bdd4296e0c3a5ae89b45d895d373b0514ac5999b39bacf2a09b10a0ac0",
+      "transformations": [
+        "inactive review guard",
+        "MIT notice",
+        "local policy checksum placeholder where applicable"
+      ]
+    },
+    {
+      "path": "reference/services/magisk/run.in",
+      "sha256": "f1e4c46fecc06b60a4971e55df85e0b3c56980ec0e8d61dc771623b1f13235e1",
+      "transformations": [
+        "inactive review guard",
+        "MIT notice",
+        "local policy checksum placeholder where applicable"
+      ]
+    },
+    {
+      "path": "reference/magisk/bin/magisk-service.sh.in",
+      "sha256": "f62e1207d7ff6ecf854988779ef8e9c9dd3eb99dbf729b7d168fd2437f99af48",
+      "transformations": [
+        "inactive review guard",
+        "MIT notice",
+        "local policy checksum placeholder where applicable",
+        "narrow ShellCheck SC2117 annotation: MagiskSU -v is a version query, not a user-switch command"
+      ]
+    },
+    {
+      "path": "reference/magisk/bin/magisk-boot-gate.sh.in",
+      "sha256": "af4f02a0aaf3c6166365ca01c0e77accf0c7f5d070a536d3816c3151ca9faafd",
+      "transformations": [
+        "inactive review guard",
+        "MIT notice",
+        "local policy checksum placeholder where applicable"
+      ]
+    },
+    {
+      "path": "reference/magisk/bin/magisk-recover.sh.in",
+      "sha256": "82267cdb2f13d418f6626cec4d5962e9b4526e889c472f47e7334fbee871f09d",
+      "transformations": [
+        "inactive review guard",
+        "MIT notice",
+        "local policy checksum placeholder where applicable"
+      ]
+    }
+  ]
+}

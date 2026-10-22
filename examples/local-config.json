@@ -1,0 +1,7 @@
+{
+  "status": "review_required_not_loaded_by_reference_templates",
+  "service_base": "/data/local/screenmate-services",
+  "policy_sha256": "OWNER_CAPTURES_PRISTINE_TARGET_POLICY_DURING_APPROVED_MAINTENANCE",
+  "app_grants": "none supplied",
+  "automatic_boot_enable": false
+}

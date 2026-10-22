@@ -1,0 +1,103 @@
+#!/system/bin/sh
+# SPDX-License-Identifier: MIT
+# Sanitized live reference, NOT an installer; production has not been changed.
+if [ "${SCREENMATE_REVIEWED_REFERENCE:-}" != yes ]; then
+    printf '%s\n' 'Inactive reference: review documentation and local policy capture first.' >&2
+    exit 64
+fi
+
+
+S=/data/local/screenmate-services
+SERVICE=$S/services/magisk
+R=/debug_ramdisk
+O=/dev/screenmate-magisk-su
+P=$S/magisk/bin/magiskpolicy
+ORIG=$S/magisk/reference/sepolicy-original.bin
+BB=$S/bin/busybox
+ARM=$S/run/magisk-test.armed
+LOCK=$S/run/magisk-failure.lock
+LOG=$S/logs/magisk-recovery.log
+EXPECTED=__LOCAL_POLICY_SHA256_REQUIRED__
+
+export LD_LIBRARY_PATH="$S/lib"
+
+log() {
+    echo "$(date '+%Y-%m-%d %H:%M:%S') $*" >> "$LOG"
+}
+
+overlay_owned() {
+    grep -F ' /product/bin ' /proc/self/mountinfo |
+        grep -Fq "upperdir=$O/upper"
+}
+
+runtime_mounted() {
+    grep -Fq " $R " /proc/self/mountinfo
+}
+
+# Never change the system unless a controlled test
+# explicitly armed this recovery mechanism.
+if [ ! -e "$ARM" ]; then
+    echo "RECOVERY_GUARD=NOT_ARMED"
+    exit 0
+fi
+
+log "Recovery guard activated"
+
+# Prevent subsequent Magisk startup attempts.
+touch "$LOCK"
+touch "$SERVICE/down"
+
+# Ask runit to stop the service gracefully.
+"$BB" timeout 10 "$S/bin/sv" stop "$SERVICE" \
+    >> "$LOG" 2>&1 || true
+
+# Emergency cleanup if the service wrapper failed.
+if overlay_owned; then
+    umount /product/bin >> "$LOG" 2>&1 ||
+        log "ERROR: Unable to unmount SU overlay"
+fi
+
+if [ -x "$R/magisk" ]; then
+    "$BB" timeout 8 "$R/magisk" --stop \
+        >> "$LOG" 2>&1 ||
+        log "WARNING: Magisk stop unsuccessful"
+fi
+
+if runtime_mounted; then
+    umount "$R" >> "$LOG" 2>&1 ||
+        log "ERROR: Magisk runtime still mounted"
+fi
+
+CURRENT=$(sha256sum /sys/fs/selinux/policy |
+    cut -d ' ' -f1)
+
+if [ "$CURRENT" != "$EXPECTED" ]; then
+    "$P" --load "$ORIG" --live >> "$LOG" 2>&1 ||
+        log "ERROR: Policy restoration failed"
+fi
+
+CURRENT=$(sha256sum /sys/fs/selinux/policy |
+    cut -d ' ' -f1)
+
+if ! overlay_owned &&
+   ! runtime_mounted &&
+   [ "$CURRENT" = "$EXPECTED" ] &&
+   [ "$(getenforce)" = Enforcing ]; then
+
+    # Only remove overlay backing files if
+    # the overlay is no longer mounted.
+    rm -rf "$O"
+
+    rm -f "$ARM"
+
+    log "RECOVERY=SUCCESS"
+    echo "RECOVERY=SUCCESS"
+else
+    log "RECOVERY=INCOMPLETE"
+    echo "RECOVERY=INCOMPLETE"
+    exit 1
+fi
+
+# Retain failure.lock for manual investigation,
+# even after successful emergency recovery.
+echo "MAGISK_FAILURE_LOCK=ACTIVE"
