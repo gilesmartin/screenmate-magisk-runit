@@ -1,41 +1,30 @@
-# Screenmate MagiskSU + runit
+# ScreenMate startup services
 
-**Experimental reference integration and plan-only packaging, not a one-click root tool.**
+I built this because I wanted my ScreenMate hotspot and a few other background tasks to start automatically when the unit powers up.
 
-A documented technique for ordinary apps to use MagiskSU on an already-rooted Screenmate One: Android 14, ARM64, enforcing SELinux, immutable `/system` and `/product`, with an existing authorized root ADB shell. No boot-image patch or bootloader unlock is part of this technique. This does not create initial root or promise universal device compatibility.
+This repo shares the MagiskSU and runit setup behind that arrangement: how it hooks into startup, starts the root service, and keeps it supervised. It does not include a hotspot manager or give an unrooted ScreenMate root access.
 
-The owner reports the installation has worked since Saturday through **several successful reboots**. Current read-only inspection corroborated a running Magisk 30.7 service, enforcing SELinux, and the SU symlink's shared device/inode identity. No reboot, app grant, service restart or mount/policy change was performed for this publication.
+## What would I use it for?
 
-## Quick start (off device)
+It is a starting point for ScreenMate owners who want to run their own background services at boot rather than start them manually each time. MagiskSU lets Android apps request root access; runit starts and watches long-running services.
 
-Requires Python 3.9+ and a POSIX shell (including macOS). No third-party binaries or APKs are included.
+I have used the setup on my own ScreenMate through several successful reboots. Other firmware has not been verified.
 
-```sh
-python3 -m unittest discover -s tests -v
-sh scripts/install.sh       # prints a review plan; NEVER installs
-sh scripts/uninstall.sh     # prints a review plan; NEVER uninstalls
-python3 scripts/adb-doctor.py --serial YOUR_AUTHORIZED_DEVICE
-```
+## What do I need?
 
-The doctor is optional and read-only. It does not reconnect, start services, request root grants or prove an application can obtain root. An offline device is a transport blocker, not evidence of broken Magisk.
+An already-rooted ScreenMate One, root ADB access, and enough Android/Linux experience to review and adapt shell scripts. The tested unit runs Android 14 on ARM64.
 
-## What is captured
+This is an experimental reference, not a one-click installer. The `install.sh` and `uninstall.sh` tools only print plans; they do not change the device. The reference scripts are disabled by default. Read the security and recovery notes before changing anything that runs as root at boot.
 
-- [Boot chain and exact narrow launch hook](docs/boot-integration.md), including the standard Android boot-broadcast entry and existing authenticated loopback ADB bootstrap.
-- Five [sanitized current-live references](reference/source-manifest.json), disabled by default. A device-specific kernel-policy pin is replaced by a mandatory local placeholder.
-- [Architecture](docs/architecture.md), [installation plan](docs/install.md), [configuration](docs/configuration.md), [recovery](docs/recovery.md), [security](docs/security.md), and [test evidence/limits](docs/testing.md).
-- An explicit-allowlist [private export tool](scripts/private-export.py), with no policy/database/APK/key/log collection.
+## Where to start
 
-## Essential warnings
+- [Setup requirements and installation plan](docs/install.md)
+- [How the startup hook works](docs/boot-integration.md)
+- [Configuration](docs/configuration.md)
+- [Security warnings](docs/security.md) and [recovery](docs/recovery.md)
+- [Technical details and developer notes](docs/architecture.md)
+- [Tests and reboot evidence](docs/testing.md)
 
-The existing boot caller's parent directory was world-writable. **Do not reproduce that trust boundary.** Root scripts and their complete parent chain must be controlled by root; review a safer independent boot entry before deployment. This publication does not change the original installation.
+## License
 
-The live readiness gate has no total deadline; cleanup can block; cleanup failure does not automatically latch a failure lock; the recovery guard is inert unless explicitly armed. Unexpected supervisor-crash recovery and cross-firmware behavior are not established. See [security](docs/security.md).
-
-`/product/bin/su` must remain a **symlink to `/debug_ramdisk/magisk`**, not a copied binary or hardlink. Native Magisk client authentication requires the runtime identity; a visible path alone is insufficient.
-
-No vehicle application, telemetry service, SSH or Termux application installation is required by the Magisk service itself. The legacy boot adapter is documented, not made a mandatory redistributable dependency. No private boot-helper APK, package identifier, ADB key or root authorization is published.
-
-## License and attribution
-
-Custom integration scripts, documentation and tools: [MIT](LICENSE). Magisk, runit, BusyBox, Android and Termux remain their authors' work under their own licenses; see [third-party notices](THIRD_PARTY_NOTICES.md) and [pinned provenance](dependencies.json). No certification, security guarantee, or third-party relicensing right is implied.
+The custom scripts and documentation use the [MIT license](LICENSE). Magisk, BusyBox and runit have their own licenses; see [third-party notices](THIRD_PARTY_NOTICES.md).
